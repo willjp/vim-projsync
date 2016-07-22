@@ -75,8 +75,12 @@ class ProjSync( object ):
 		Based on JSON config, and the file's gitroot, 
 		retrieves the locations that the file should also be copied to
 		"""
-		pass
 
+		for project in self.config:
+			if self.config[ project ]['path'] == 'gitroot'
+				return self.config[ project ]['copy_paths']
+	
+		logger.debug('git-root not configured. ignoring: "%s"' gitroot )
 
 	##                                                                                      #}}}
 	##@ projsync                                                                            #{{{
@@ -95,9 +99,13 @@ class ProjSync( object ):
 		gitroot_filepath  = filepath.replace( gitroot, '' )
 		project_copypaths = self._get_proj_copypaths( gitroot )
 
-		for project in project_syncpaths:
-			for copypath in project_copypaths:
-				shutil.copy2( filepath, '{copypath}/{gitroot_filepath}' )
+		for project in project_copypaths:
+			for copypath in project_copypaths[ project ]:
+
+				if project_copypaths[ project ][ copypath ]['method'] == 'copy':
+					shutil.copy2( filepath, '{copypath}/{gitroot_filepath}' )
+				else:
+					logger.error('bad config - unknown method: "%s"' % project_copypaths[ project ][ copypath ]['method']
 
 	##                                                                                      #}}}
 	##@ reload_config                                                                       #{{{
