@@ -1,13 +1,17 @@
 #!/usr/bin/env python2
 """
-Name :          mfw_osTest.py
-Created :       February 28 2015
+Name :          projsync.py
+Created :       July 21 2016
 Author :        Will Pittman
 Contact :       willjpittman@gmail.com
 ________________________________________________________________________________
-Description :   Git-projects can configured to have an action performed
-                on their files 
-                
+Description :   Configure vim to copy files to other location(s)
+					 relative to the project's git-root on file-save 
+					 (or whenever else it is useful to you)
+
+					 ex:
+						 /home/dev/scripts/.git                        >> /devsync/win32/
+						 /home/dev/scripts/ python/animtools/file.py   >> /devsync/win32/ python/animtools/file.py
 ________________________________________________________________________________
 """
 import vim
@@ -22,6 +26,8 @@ import logging
 import time
 import platform
 import fnmatch
+
+#!TODO: ProjSync could be a singleton
 
 
 logger = logging.getLogger(__name__)

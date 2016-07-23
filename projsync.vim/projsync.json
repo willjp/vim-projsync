@@ -8,7 +8,7 @@
 					{ "method":"copy", "path":"/devsync/test" }
 				]
 	},
-	"MFW_scripts" :{
+	"MFW scripts" :{
 		"gitroot" :      "~/progs/maya/m2014",
 		"hostnames":     ["dev-vm-mfw-*"],
 		"copy_paths": [
