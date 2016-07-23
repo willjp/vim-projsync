@@ -20,6 +20,9 @@ import shutil
 import json
 import logging
 import time
+import platform
+import fnmatch
+
 
 logger = logging.getLogger(__name__)
 ll     = locals
@@ -343,12 +346,25 @@ class ProjSync( object ):
 					raise RuntimeError('Invalid Project Config. Every project must contain the key "gitroot". project "%s"' % project )
 				if not 'copy_paths' in config[ project ]:
 					raise RuntimeError('Invalid Project Config. Every project must contain the key "copy_paths". project "%s"' % project )
+				if not 'hostnames' in config[ project ]:
+					raise RuntimeError('Invalid Project Config. Every project must contain the key "hostnames". project "%s"' % project )
 
-				project_gitroot = config[ project ]['gitroot'].replace('~',HOME)
+				project_gitroot   = config[ project ]['gitroot'].replace('~',HOME)
+				project_hostnames = config[ project ]['hostnames']
+
+				## check if gitroot matches project's gitroot
 				if gitroot == project_gitroot:
-					if self.debug: print('Project Identified: %s' % project)
 
-					return config[ project ]['copy_paths']
+					## check if hostname matches the projsync config
+					host_match = False
+					for hostname in project_hostnames:
+						if fnmatch.fnmatch( platform.node(), hostname ):
+							host_match = True
+							break
+
+					if host_match:
+						if self.debug: print('Project Identified: %s' % project)
+						return config[ project ]['copy_paths']
 
 
 			if self.debug: 
