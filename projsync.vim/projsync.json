@@ -1,0 +1,18 @@
+
+{
+	"testproj" :{
+		"gitroot" :      "~/dev",
+		"copy_paths": [
+					{ "method":"copy", "path":"/devsync/test" },
+					{ "method":"copy", "path":"/devsync/test" }
+				]
+	},
+	"MFW_scripts" :{
+		"gitroot" :      "~/progs/maya/m2014",
+		"copy_paths": [
+					{ "method":"copy", "path":"/devsync/mfw/scripts" }
+				]
+	}
+}
+
+
