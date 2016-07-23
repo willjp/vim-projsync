@@ -29,7 +29,7 @@ class ProjSync( object ):
 	##@ __init__                                                                            #{{{
 	############################################################################################
 	############################################################################################
-	def __init__(self, debug=True ):
+	def __init__(self, debug=False ):
 		"""
 		"""
 		self.debug = debug
@@ -64,7 +64,7 @@ class ProjSync( object ):
 
 
 	##                                                                                      #}}}
-	##@ pushall                                                                             #{{{
+	##@ push_all                                                                            #{{{
 	############################################################################################
 	############################################################################################
 	def push_all(self):
@@ -79,38 +79,84 @@ class ProjSync( object ):
 		gitroot  = self._find_gitroot( filepath )
 
 
+
 		## delete everything under each 'copy_path'
-		for (cwd, files, dirs) in os.walk( gitroot ):
+		## (but not the copypath itself, since that is generally a shared folder)
+		##
+		project_copypaths = self.get_copypaths( gitroot=gitroot, filedir=gitroot )
+
+		for copypath in project_copypaths:
+			for filepath in os.listdir( copypath['path'] ):
+				cwd = copypath['path']
+				copypath_path = '{cwd}/{filepath}'.format(**ll())
+
+				if copypath['method'] == 'copy':
+					if self.debug: print('Recursively Deleting path: "%s"' % copypath_path )
+					try:
+						if os.path.isdir( copypath_path ):
+							shutil.rmtree( copypath_path )
+						else:
+							os.remove( copypath_path )
+					except:
+						print('error deleting: "%s"' % copypath_path )
+
+				else:
+					logger.error('bad config - unknown method: "{method}"'.format(**copypath) )
 
 
-			## identify path from gitroot, and all dirs to copy to
-			## (
-			for file in files:
-				project_copypaths = self.get_copypaths( filepath )
+		## copy all files under each 'copy_path'
+		##
+		for (cwd, dirs, files) in os.walk( gitroot, topdown=False ):
+			project_copypaths = self.get_copypaths( gitroot=gitroot, filedir=cwd )
 
-				if copypath['method'] == 'copy'
+			for filename in files:
+				filepath = '{cwd}/{filename}'.format(**ll())
+				#print( filepath )
+#				for copypath in project_copypaths:
+#					gitroot_filepath  = filepath.replace( gitroot, '' )
+#					if copypath['method'] == 'copy':
+#						self._pushmethod_copy( filepath, gitroot_filepath, copypath )
+#					else:
+#						logger.error('bad config - unknown method: "{method}"'.format(**copypath) )
+
 
 
 	##                                                                                      #}}}
 	##@ push                                                                                #{{{
 	############################################################################################
 	############################################################################################
-	def push(self):
+	def push(self, filepath=None, gitroot=None, project_copypaths=None ):
 		"""
 		Copies the file from active vim buffer 
 		to all of it's git-project's
 		configured 'copy_paths'.
 
 		All timestamps/file-attrs should be preserved.
+
+		_______________________________________________________________________________________________________________________
+		INPUT:
+		_______________________________________________________________________________________________________________________
+		filepath          | '/home/dev/myfile.py'         | (opt)  | path to the file to be copied. If no file is supplied,
+		                  |                               |        | the currently opened filepath in the active vim buffer is used.
+		                  |                               |        |
+		gitroot           | '/home/dev'                   | 1(opt) | if you already know the gitroot, you can supply it here
+		                  |                               |        |
+		project_copypaths | ['/devsync/mfw/scripts', ...] | 1(opt) | if you already know the copy_paths,
+		                  |                               |        | you may supply it here.
+		                  |                               |        |
 		"""
 
 		## get filepath, and it's gitroot (which identifies it's project)
-		filepath = vim.current.buffer.name
+		if not filepath:
+			filepath = vim.current.buffer.name
+
 		gitroot  = self._find_gitroot( filepath )
+		gitroot_filepath  = filepath.replace( gitroot, '' )
 
 		## identify path from gitroot, and all dirs to copy to
-		gitroot_filepath  = filepath.replace( gitroot, '' )
-		project_copypaths = self.get_copypaths( filepath )
+		if not project_copypaths:
+			project_copypaths = self.get_copypaths( filepath )
+
 
 		## for each copypath, handle it's method
 		## (currently copy only, but potential for scp, rsync, ...)
@@ -184,12 +230,47 @@ class ProjSync( object ):
 			os.makedirs( os.path.dirname( copypath_path ) )
 
 		if os.path.isfile( copypath_path ):
-			os.remove( copypath_path )
+			try:
+				os.remove( copypath_path )
+			except:
+				print('error deleting: "%s"' % copypath_path )
+
 
 		if self.debug:
 			print('copying file "{filepath}" > "{copypath_path}"'.format( **ll() )  )
 
-		shutil.copy2( filepath, copypath_path )
+		try:
+			shutil.copy2( filepath, copypath_path )
+		except:
+			print('Error copying: "{filepath}" > "{copypath_path}"'.format( **ll() ) )
+
+
+	##                                                                                      #}}}
+	##@ _delmethod_copy                                                                     #{{{
+	############################################################################################
+	############################################################################################
+	def _delmethod_copy(self, filepath, gitroot_filepath, config ):
+		"""
+		Copies 'filepath' to ['copy_paths']['path'],
+			* using file-attributes from 'filepath' (including last-modified)
+
+		( handler for 'copy_paths' keys using method 'copy' )
+		"""
+		HOME = os.environ['HOME']
+
+		copypath_path = config['path']
+		copypath_path.replace('~', HOME)
+		copypath_path = '{copypath_path}/{gitroot_filepath}'.format(**ll())
+
+		if not os.path.isdir( os.path.dirname( copypath_path ) ):
+			os.makedirs( os.path.dirname( copypath_path ) )
+
+		if self.debug:
+			print('deleting file "{copypath_path}"'.format( **ll() )  )
+
+		if os.path.isfile( copypath_path ):
+			os.remove( copypath_path )
+
 
 	##                                                                                      #}}}
 
@@ -197,7 +278,7 @@ class ProjSync( object ):
 	##@ get_copypaths                                                                       #{{{
 	############################################################################################
 	############################################################################################
-	def get_copypaths(self, filepath ):
+	def get_copypaths(self, filepath=None, filedir=None, gitroot=None ):
 		"""
 		Based on JSON config, and the file's gitroot, 
 		retrieves the locations that the file should also be copied to
@@ -205,8 +286,12 @@ class ProjSync( object ):
 		_____________________________________________________________________________________
 		INPUT:
 		_____________________________________________________________________________________
-		filepath | '/home/dev/progs/myscript.py' |  | path to the file you are operating on.
-		         |                               |  |
+		filepath | '/home/dev/progs/myscript.py' | 1(opt) | path to the file you are operating on.
+		         |                               |        |
+		filedir  | '/home/dev/progs'             | 2(opt) | path to the directory containing your file
+		         |                               |        |
+		gitroot  | '/home/dev'                   | 2(opt) | path to your file's gitroot (if you know it)
+		         |                               |        |
 		_____________________________________________________________________________________
 		OUTPUT:
 		_____________________________________________________________________________________
@@ -221,14 +306,15 @@ class ProjSync( object ):
 
 
 		## identify gitroot
-		gitroot = self._find_gitroot( filepath )
 		if not gitroot:
-			logger.debug('file not in a git-project. ignoring: "%s"' % filepath )
-			return
+			gitroot = self._find_gitroot( filepath )
+			if not gitroot:
+				logger.debug('file not in a git-project. ignoring: "%s"' % filepath )
+				return
 
 
 		## identify file's config
-		config = self._get_fileconfig( filepath )
+		config = self._get_fileconfig( filepath=filepath, filedir=filedir )
 		if not config:
 			logger.debug('no JSON config detected for filepath: "%s"' % filepath )
 			return
@@ -265,7 +351,7 @@ class ProjSync( object ):
 	##@ _get_fileconfig                                                                     #{{{
 	############################################################################################
 	############################################################################################
-	def _get_fileconfig(self, filepath):
+	def _get_fileconfig(self, filepath=None, filedir=None):
 		"""
 		configs can be stored in 2x locations:
 		a) projsync.json  in same directory as file
@@ -276,8 +362,11 @@ class ProjSync( object ):
 		_____________________________________________________________________________________
 		INPUT:
 		_____________________________________________________________________________________
-		filepath | '/home/dev/progs/myscript.py' |  | path to the file you are operating on.
-		         |                               |  |
+		filepath  | '/home/dev/progs/myscript.py' | (opt) | path to the file you are operating on.
+		          |                               |       |
+		filedir   | '/home/dev/progs'             | (opt) | alternatively, if you are working with an
+		          |                               |       | entire directory of files, you may
+					 |                               |       | pass the file's directory directly.
 		_____________________________________________________________________________________
 		OUTPUT:
 		_____________________________________________________________________________________
@@ -295,7 +384,10 @@ class ProjSync( object ):
 		"""
 
 		HOME = os.environ['HOME']
-		cwd  = os.path.dirname( filepath )
+
+		if filedir:		cwd = filedir
+		else:				cwd = os.path.dirname( filepath )
+
 
 		def save_new_config( config_path ):
 			""" 
@@ -321,12 +413,17 @@ class ProjSync( object ):
 					'{HOME}/.vim/projsync.json'.format(**ll()),
 					]
 
+		existing_project = False
+		if self.proj_configs:
+			if cwd in self.proj_configs:
+				existing_project = True
+
 
 		## If this directory's config has already been read,
 		## Check if config has changed since last read (reload if changed)
-		if cwd in self.proj_configs:
-			config_path   = self.proj_configs['config_path']
-			last_mtime    = self.proj_configs['mtime']
+		if existing_project:
+			config_path   = self.proj_configs[ cwd ]['config_path']
+			last_mtime    = self.proj_configs[ cwd ]['mtime']
 
 			if os.path.getmtime( config_path ) > last_mtime:
 				return save_new_config( config_path )
