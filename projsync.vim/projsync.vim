@@ -3,7 +3,7 @@ if !has('python')
 	finish
 	echo "Your version of vim does not support python"
 else
-	pyfile ~/progs/vim/projsync.vim/main.py
+	pyfile ~/progs/vim/projsync.vim/projsync.py
 	py import logging
 	py logging.basicConfig( lv=20 )
 endif
@@ -13,12 +13,12 @@ endif
 "" Command Map
 ""
 
-function! ProjSyncPush()
-	py ProjSync().push()
+function! ProjSyncPushFile()
+	py ProjSync().push_file()
 endfunc
 
-function! ProjSyncPushAll()
-	py ProjSync().push_all()
+function! ProjSyncSync()
+	py ProjSync().sync_all()
 endfunc
 
 function! ProjSyncClear()

@@ -58,20 +58,26 @@ class ProjSync( object ):
 			This largely has to do with my own personal use-case. I'm using this on a machine
 			whose disk is being violently thrashed, I want to keep disk access to an absolute
 			minimum.
+
+
+		USE: if you just added a new projsync.json file (that did not exist before)
 		"""
 
 		self.proj_configs = {}
 
 
 	##                                                                                      #}}}
-	##@ push_all                                                                            #{{{
+	##@ sync_all                                                                            #{{{
 	############################################################################################
 	############################################################################################
-	def push_all(self):
+	def sync_all(self):
 		"""
 		For the opened file's 'gitroot'
 		Removes all files in each 'copy_paths' location,
 		then copies all files from gitroot into each 'copy_paths' location.
+
+
+		USE: Designed to be run every time you switch git-branches.
 		"""
 	
 		## get filepath, and it's gitroot (which identifies it's project)
@@ -111,27 +117,29 @@ class ProjSync( object ):
 
 			for filename in files:
 				filepath = '{cwd}/{filename}'.format(**ll())
-				#print( filepath )
-#				for copypath in project_copypaths:
-#					gitroot_filepath  = filepath.replace( gitroot, '' )
-#					if copypath['method'] == 'copy':
-#						self._pushmethod_copy( filepath, gitroot_filepath, copypath )
-#					else:
-#						logger.error('bad config - unknown method: "{method}"'.format(**copypath) )
+				for copypath in project_copypaths:
+					gitroot_filepath  = filepath.replace( gitroot, '' )
+					if copypath['method'] == 'copy':
+						self._pushmethod_copy( filepath, gitroot_filepath, copypath )
+					else:
+						logger.error('bad config - unknown method: "{method}"'.format(**copypath) )
 
 
 
 	##                                                                                      #}}}
-	##@ push                                                                                #{{{
+	##@ push_file                                                                           #{{{
 	############################################################################################
 	############################################################################################
-	def push(self, filepath=None, gitroot=None, project_copypaths=None ):
+	def push_file(self, filepath=None, gitroot=None, project_copypaths=None ):
 		"""
 		Copies the file from active vim buffer 
 		to all of it's git-project's
 		configured 'copy_paths'.
 
 		All timestamps/file-attrs should be preserved.
+
+
+		USE: designed to run every time you save a file
 
 		_______________________________________________________________________________________________________________________
 		INPUT:
@@ -382,18 +390,25 @@ class ProjSync( object ):
 						}
 					}
 		"""
-
 		HOME = os.environ['HOME']
 
 		if filedir:		cwd = filedir
 		else:				cwd = os.path.dirname( filepath )
 
 
-		def save_new_config( config_path ):
+		def save_new_config( config_path=None, cwd=None ):
 			""" 
 			reads a config_file, 
 			saves contents under current-working-directory 
 			with last-mod-date for future reference  
+
+			____________________________________________________________
+			INPUT:
+			____________________________________________________________
+			config_path | '/path/to/projsync.json' | 1(opt) | the path to the config (including the config)
+			            |                          |        |
+			cwd         | '/path/to'               | 1(opt) | the path to the config
+			            |                          |        |
 			"""
 			if self.debug: print('using config from: "{config_path}"'.format( **ll() ) )
 			with open( config_path, 'r' ) as ff:
@@ -424,9 +439,10 @@ class ProjSync( object ):
 		if existing_project:
 			config_path   = self.proj_configs[ cwd ]['config_path']
 			last_mtime    = self.proj_configs[ cwd ]['mtime']
+			if self.debug: print('reusing existing config: "%s"' % config_path )
 
 			if os.path.getmtime( config_path ) > last_mtime:
-				return save_new_config( config_path )
+				return save_new_config( cwd=config_path )
 
 		## Otherwise, figure out which json-config to use for this
 		## file, load & save
