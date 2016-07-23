@@ -32,8 +32,8 @@ class ProjSync( object ):
 	def __init__(self):
 		"""
 		"""
-		self.reload_config()
-
+		self.cfg_main   = None
+		self.cfg_local  = None
 
 	##                                                                                      #}}}
 	##@ _find_gitroot                                                                       #{{{
@@ -111,10 +111,30 @@ class ProjSync( object ):
 	##@ reload_config                                                                       #{{{
 	############################################################################################
 	############################################################################################
-	def reload_config(self):
-		pass
-	
-	
+	def reload_config(self, filepath):
+		"""
+		configs can be stored in 2x locations:
+		a) .projsync.json in the same directory as the file
+		b) ~/.vim/projsync.json
+		"""
+
+
+		cwd = os.path.dirname( filepath )
+
+		cfg_local = '{cwd}/.projsync.json'.format(**ll())
+		cfg_main  = '{HOME}/.vim/projsync.json'.format(**ll())
+
+
+		if os.path.isfile( cfg_local ):
+			with open( cfg_local, 'r' ) as ff:
+				self.cfg_main  = json.load( ff )
+
+		elif os.path.isfile( cfg_main ):
+			with open( cfg_main, 'r' ) as ff:
+				self.cfg_local = json.load( ff )
+
+		## otherwise, no config	
+
 	##                                                                                      #}}}
 
 
