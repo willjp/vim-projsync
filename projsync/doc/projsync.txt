@@ -1,0 +1,74 @@
+*projsync.txt*    Work with git locally, and mirror changes to Network Shares on file-save.
+
+Author:   Will Pittman
+License:  BSD
+Requires: git, vim +python
+
+
+
+INTRODUCTION                       *projsync*
+
+The Problem:~
+
+Using git-projects in VirtualBox SharedFolders (or NetworkShares) is slow.  
+
+This is a simple script that allows you to work locally, 
+and push changes to a network-shared directory on file-save.
+
+
+
+Why do I care:~
+
+Unfortunately, the majority of my work is for the Windows platform.
+The lack of effective shortcuts, window-management, and the awful
+non-resizable, non-multiplexed cmd.exe feels clumsy, and aggravating.
+( If unfamiliar, see <i3>, <dwm>, <openbox>, <tmux>, <zsh> )
+( each may change your life, scout's honour      )
+
+After experimenting for a few years with various combinations of
+the following <amazing> projects, 
+* AutoHotkey
+* cygwin
+* msys
+* msys2
+* git-bash
+* ConEmu
+* clink
+* bugn
+* gVim
+* lsyncd
+
+
+I eventually settled on using a VirtualMachine for development.
+It was wonderful. No platform-specific issues or build constraints, 
+completely identical setups everywhere, and quickly reproducible 
+(see <vagrant> and <saltstack>).
+
+To pass information back and forth, I decided to share my 
+git source-dirs with the Windows Host using VirtualBox SharedFolders.
+That way everything can still be run/compiled etc on the windows host 
+itself, in the actual production environment.
+
+
+.. But then ..
+
+The performance of git when working within the shared folder was totally
+crippled. It was unusable. I was crushed.
+
+This plugin is my workaround. I now work locally, and keep various
+shared folders in `/mnt/`. If I am in a project that has configured
+projsync folder(s), every time that I save the file gets pushed to
+the shared folder right away.
+
+	ex:
+	`/home/dev/myproj/.git`              >>  `/mnt/devsync/my_proj/`
+	`/home/dev/myproj/ docs/README.rst`  >>  `/mnt/devsync/my_proj/ docs/README.rst`
+
+
+
+CONFIGURATION                      *projsync-config*
+
+
+
+
+vim:tw=78:et:ft=help:norl:
