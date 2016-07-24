@@ -68,6 +68,22 @@ the shared folder right away.
 
 CONFIGURATION                      *projsync-config*
 
+Basics~
+
+The core idea is that you configure projsync to watch for specific
+git-projects. Every time that a file is saved, it's path is searched
+for it's git project's root. 
+
+If the file's git project matches one of your configured paths,
+after the file is saved, it the file will be copied to each of the configured
+locations.
+
+Config Locations~
+
+For maximum flexibility, 
+
+
+
 
 
 
