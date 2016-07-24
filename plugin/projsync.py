@@ -201,7 +201,7 @@ class ProjSync( object ):
 		"""
 
 		filedir  = os.path.dirname( filepath )
-		print( 'finding git-root from: "%s"' % filedir )
+		if self.debug: print( 'finding git-root from: "%s"' % filedir )
 		pipe = subprocess.Popen( 
 				shlex.split( 'git rev-parse --show-toplevel' ),
 				cwd    = filedir,
