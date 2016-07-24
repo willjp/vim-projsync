@@ -1,9 +1,12 @@
 
+
+let s:scriptroot=expand('<sfile>:p:h')
+
 if !has('python')
 	finish
 	echo "Your version of vim does not support python"
 else
-	pyfile ~/progs/vim/projsync.vim/projsync.py
+	execute 'pyfile ' .   s:scriptroot . '/projsync.py'
 	py import logging
 	py logging.basicConfig( lv=20 )
 endif
