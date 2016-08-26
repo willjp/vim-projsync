@@ -8,11 +8,29 @@
 					{ "method":"copy", "path":"/devsync/test" }
 				]
 	},
+
+
+
+
 	"MFW scripts" :{
 		"gitroot" :      "~/progs/maya/m2014",
 		"hostnames":     ["dev-vm-mfw-*"],
 		"copy_paths": [
 					{ "method":"copy", "path":"/devsync/mfw/scripts" }
+				]
+	},
+	"MFW pipeline_pythonmodules" :{
+		"gitroot" :      "~/progs/maya/pipeline_pythonmodules",
+		"hostnames":     ["dev-vm-mfw-*"],
+		"copy_paths": [
+					{ "method":"copy", "path":"/devsync/mfw/pipeline_pythonmodules" }
+				]
+	},
+	"MFW pipeline_systemprofiles" :{
+		"gitroot" :      "~/progs/maya/pipeline_systemprofiles",
+		"hostnames":     ["dev-vm-mfw-*"],
+		"copy_paths": [
+					{ "method":"copy", "path":"/devsync/mfw/pipeline_systemprofiles" }
 				]
 	}
 }

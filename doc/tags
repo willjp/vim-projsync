@@ -1,3 +1,8 @@
 projsync	projsync.txt	/*projsync*
 projsync-config	projsync.txt	/*projsync-config*
+projsync-config-format	projsync.txt	/*projsync-config-format*
+projsync-config-keys	projsync.txt	/*projsync-config-keys*
+projsync-config-locations	projsync.txt	/*projsync-config-locations*
+projsync-dependencies	projsync.txt	/*projsync-dependencies*
+projsync-special-mentions	projsync.txt	/*projsync-special-mentions*
 projsync.txt	projsync.txt	/*projsync.txt*
