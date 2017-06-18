@@ -301,10 +301,14 @@ class ProjSync( object ):
 
             .. code-block:: python
 
+                # if copypaths exist
                 [
                     { "method":"copy", "path":"/devsync/test" },
                     { "method":"copy", "path":"/devsync/test2" },
                 ]
+
+                # if copypaths do not exist
+                []
         """
         HOME = os.environ['HOME']
 
@@ -321,7 +325,7 @@ class ProjSync( object ):
         config = self._get_fileconfig( filepath=filepath, filedir=filedir )
         if not config:
             logger.debug('no JSON config detected for filepath: "%s"' % filepath )
-            return
+            return []
 
 
         ## return copy_paths
