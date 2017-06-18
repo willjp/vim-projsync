@@ -10,6 +10,20 @@ Requires: git, vim compiled with python
 INTRODUCTION                       *projsync*
 ================================================================================
 
+What it Does:~
+
+Configure vim so that whenever you save a file, it copies that file
+preserving it's relative filepath to your project-root, to a variable
+number of configurable locations.
+
+Example:
+
+project/src/myfile.txt >> /mnt/myproject_copy/src/myfile.txt
+                       >> /var/tmp/myproject_other/src/myfile.txt
+
+
+
+
 The Problem:~
 
 Using git-projects in VirtualBox SharedFolders (or NetworkShares) is slow.  
