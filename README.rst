@@ -157,19 +157,19 @@ locations.
 
 
 Config Locations
-................
+````````````````
 
 The config attempting to be a middleground between git, and vim.
 There are 2x places that the projsync config will be searched for:
 
 Global configuration:
-`````````````````````
+.....................
 
 Your main config: ``~/.vim/projsync.json``
 
 
 Local configuration:
-````````````````````
+....................
 
 If you're just testing things out, or need
 special behaviour under a subdirectory of a git
@@ -189,7 +189,7 @@ project.
 
 
 Config Format
-.............
+`````````````
 
 There are 2x types of configs, global and local.
 You can use either configuration type, or both.
@@ -203,7 +203,7 @@ The main difference is:
 
 
 Examples
-````````
+........
 
 Example Global Config: `~/.vim/projsync.json`
 
@@ -242,7 +242,7 @@ Example Local Config: `/home/dev/work/gui/.projsync.json`
 
 
 Configuration Keys
-``````````````````
+..................
 
 * `gitroot`: The root directory of the git project you ar synchronizing.
              (the directory containing your .git/ directory).
