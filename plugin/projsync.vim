@@ -15,7 +15,7 @@ if !has('python')
 else
 	execute 'pyfile ' .   s:scriptroot . '/projsync.py'
 	py import logging
-	py logging.basicConfig( lv=20 )
+	py logging.basicConfig(lv=20)
 endif
 
 
