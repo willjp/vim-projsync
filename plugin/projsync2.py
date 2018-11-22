@@ -1,45 +1,119 @@
+#!/usr/bin/env python
+import fnmatch
+import json
 import os
+import platform
 import shutil
+
 import vim
 
 
 class Config(object):
     """ Object representing a [.]projsync.json file (local or global).
+
+    Example:
+
+        .. code-block:: json
+
+            {
+                "Work Stuff": {
+                    "gitroot": "~/progs/work",
+                    "hostnames": ["*-work-*"],
+                    "copy_paths": ["/devsync/work"],
+                },
+                "Windows Stuff": {
+                    "gitroot": "~/progs/os/windows",
+                    "hostnames": ["*-home-*"],
+                    "copy_paths": ["/devsync/windows"],
+                }
+                ...
+            }
+
     """
+    globalconfig = os.path.expanduser('~/.vim/projsync.json')
+
     def __init__(self, filepath=None):
+        if filepath is not None:
+            filepath = os.path.abspath(os.path.expanduser(filepath))
         self.__filepath = filepath
 
     @property
     def filepath(self):
         return self.__filepath
 
-    @staticmethod
-    def get(filepath):
-        """ Find the configfile to use for a particular file.
+    @property
+    def is_globalconfig(self):
+        return self.filepath == self.globalconfig
 
-        Returns:
-            Config: a config instance.
+    def validate(self, data, globalconfig=False):
+        pass
+
+    def read(self):
+        """ Read/Validate the contents of this projsync.json file.
         """
-        pass
+        if self.__data:
+            return self.__data
 
-    def validate(self, data):
-        pass
+        if not os.path.isfile(self.filepath):
+            raise RuntimeError('expected config at: {}'.format(self.filepath))
 
-    def read(self, force=False):
-        pass
+        with open(self.filepath, 'r') as fd:
+            data = json.loads(fd.read())
+
+        self.validate(data, self.is_globalconfig)
+        self.__data = data
 
     def copypaths(self, gitroot):
-        # only return copypaths if hostname matches
-        pass
+        """ Returns copypaths defined in this configfile, filtered by
+        defined hostname match.
 
+        If this is the globalconfig, it is also filtered by gitroot.
 
-class SyncCache(object):
-    def clear(self):
-        pass
+        Returns:
+            list: list of copypaths.
+
+                .. code-block:: python
+
+                    [
+                        '/devsync/projectA',
+                        '/mnt/backup/projectA',
+                        ...
+                    ]
+
+        """
+        data = self.read()
+        hostname = platform.node()
+        copypaths = set()
+
+        for project in data:
+            projdata = data[project]
+
+            # global projsync.json must match the gitrepo,
+            # (local projsync.json files imply their parent gitrepo)
+            if self.is_globalconfig:
+                if not projdata['gitroot'] == gitroot:
+                    continue
+            if not any([
+                fnmatch.fnmatch(hostname, x) for x in projdata['hostnames']
+            ]):
+                continue
+
+            copypaths.update(set(projdata['copy_paths']))
+
+        return list(copypaths)
 
 
 class ProjectFile(object):
+    """ Object representing a file/directory.
+    """
     def __init__(self, filepath=None):
+        """ Constructor.
+
+        Args:
+            filepath (str, optional):
+                Path to file this object will represent.
+                If none, defaults to the current vim buffer.
+        """
         if filepath is None:
             filepath = vim.current.buffer.name
 
@@ -50,11 +124,6 @@ class ProjectFile(object):
     @property
     def filepath(self):
         return self.__filepath
-
-    def config(self):
-        if not self.__config:
-            self.__config = Config.get(self.filepath)
-        return self.__config
 
     def gitroot(self):
         """ Searches for the git project root above a given file.
@@ -74,7 +143,7 @@ class ProjectFile(object):
         )
 
     def relpath(self, root):
-        if root not in self.filepath:
+        if not self.filepath.startswith(root):
             raise RuntimeError(
                 (
                     '`root` is not related to `filepath` \n'
@@ -86,7 +155,7 @@ class ProjectFile(object):
         if root == self.filepath:
             return ''
         else:
-            return root[len(gitroot) + 1:]
+            return self.filepath[len(root) + 1:]
 
     def walk_parentdirs(self):
         """ Generator, iterating over parent directories.
@@ -107,15 +176,44 @@ class ProjectFile(object):
             parent_dirpath = os.path.dirname(dirpath)
             yield parent_dirpath
 
+    def copypaths(self):
+        """ Retrieve list of paths this file should be synchronized to
+        (retaining relative path from it's gitroot).
 
-def clear_cache(config=None):
-    if not config:
-        config = Config.get()
+        This will include the global configuration, in addition to copypaths
+        defined at any level within the parent hierarchy of the file.
 
-    config.clear()
+        Returns:
+            list: list of copypaths.
+
+                .. code-block:: python
+
+                    [
+                        '/devsync/projectA',
+                        '/mnt/backup/projectA',
+                        ...
+                    ]
+
+        """
+        # only return copypaths if hostname matches
+        gitroot = self.gitroot()
+        copypaths = set()
+
+        # local .projsync.json files
+        for parentdir in self.walk_parentdirs():
+            configpath = '{}/.projsync.json'.format(parentdir)
+            if os.path.isfile(configpath):
+                config = Config(configpath)
+                copypaths.update(set(config.copypaths(gitroot)))
+
+        # global ~/.vim/projsync.json
+        config = Config(Config.globalconfig)
+        copypaths.update(set(config.copypaths(gitroot)))
+
+        return list(copypaths)
 
 
-def sync_all(filepath=None, force=False):
+def sync_gitroot(filepath=None, force=False):
     """ copies all files from gitroot to all configured copypaths.
 
     Args:
@@ -125,13 +223,11 @@ def sync_all(filepath=None, force=False):
             the current vim buffer.
     """
     projfile = ProjectFile(filepath)
-    gitroot = projfile.gitroot()
-    config = projfile.config()
+    gitroot = ProjectFile(projfile.gitroot)
+    copypaths = gitroot.copypaths()
 
-    copypaths = config.copypaths(gitroot)
-
-    for (root, dirnames, filenames) in os.walk(gitroot, topdown=False):
-        relpath = ProjectFile(root).relpath(gitroot)
+    for (root, dirnames, filenames) in os.walk(gitroot.filepath, topdown=False):
+        relpath = ProjectFile(root).relpath(gitroot.filepath)
         if relpath:
             relpath += '/'
 
@@ -155,11 +251,10 @@ def sync_file(filepath=None, force=False):
     """
     projfile = ProjectFile(filepath)
     gitroot = projfile.gitroot()
-    config = projfile.config()
 
     relpath = projfile.relpath(gitroot)
 
-    for copypath in config.copypaths(gitroot):
+    for copypath in projfile.copypaths():
         destpath = '{}/{}'.format(copypath, relpath)
 
         if all([
