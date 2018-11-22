@@ -165,16 +165,17 @@ class ProjectFile(object):
             os.path.isdir(self.filepath),
             os.path.dirname(self.filepath) == self.filepath,
         ]):
-            return self.filepath
+            yield self.filepath
 
         # walk parents
-        parent_dirpath = None
-        dirpath = self.filepath
+        else:
+            parent_dirpath = None
+            dirpath = self.filepath
 
-        while parent_dirpath != dirpath:
-            dirpath = parent_dirpath
-            parent_dirpath = os.path.dirname(dirpath)
-            yield parent_dirpath
+            while parent_dirpath != dirpath:
+                dirpath = parent_dirpath
+                parent_dirpath = os.path.dirname(dirpath)
+                yield parent_dirpath
 
     def copypaths(self):
         """ Retrieve list of paths this file should be synchronized to
