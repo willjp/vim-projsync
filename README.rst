@@ -2,117 +2,88 @@
 vim-projsync:
 =============
 
-Mirror git-projects to a second location, triggering a copy on every save.
-I recommend using this alongside something like `lsyncd` to catch/synchronize 
-branch changes.
+Configures vim to mirror saves to other locations. I use this to allow me to
+work within a linux VM while writing code targeting windows. Duplicating files 
+immediately on save helps keep modify/execute cycles fast enough to be practical.
 
-Example:
+I highly recommend supplementing this with something like lsyncd_ to catch branch
+changes. 
 
-::
+.. _lsyncd: https://github.com/axkibe/lsyncd
 
-    /src/.git
-        /src/project/myfile.txt  -> /dst/project/myfile.txt
-    
-I like to use vim within linux even while developing for windows. This
-script lets me have a quick modify/execute cycle, like I was working
-directly in windows.
+
+Install:
+--------
+
+.. code-block:: vim
+
+    " Using Vundle,
+    :Plugin 'https://github.com/willjp/vim-projsync'
+    :PluginUpdate
+
 
 
 Usage:
 ------
 
-After a configuration is created, and ``:ProjSyncEnable`` is run,
-all you need to do is save your file. It will be copied automatically
-to all configured copypaths.
+After configuring your settings using a `projsync.json` file
 
-Other Commands:
+* ``:ProjSyncEnable`` to activate mirroring for this vim session
+* save a file within one of your configured projects. 
+
+
+Commands:
 
 .. code-block:: vim
 
-    :ProjSyncEnable    " activates projsync, hooks on file-save will be activated
-    :ProjSyncDisable   " disabled projsync, hooks on file-save will be disactivated
+    :ProjSyncEnable    " activates projsync, hook on file-save will be activated
+    :ProjSyncDisable   " disabled projsync, hook on file-save will be disactivated
     :ProjSyncPushFile  " copy the current file to all configured locations
-    :ProjSyncSync      " delete all files in configured locatin, and recopy fresh copies of all files
+    :ProjSyncSync      " copy the entire contents of git repo to configured locations
 
 
 
 Configuration
 -------------
 
-Configuration is checked for in any subdirectory of a git project, (more specific takes precedence),
-falling back on  ``~/.vim/projsync.json`` .
+Global configuration is read from ``~/.vim/projsync.json`` . You can also drop a
+``.projsync.json`` file any where in your target-file's parent hierarchy. The configuration
+is cumulative.
 
-
-Examples
-.........
 
 Example Global Config: `~/.vim/projsync.json`
 
-.. code-block:: json
+.. code-block:: javascript
 
     {
-        "Test Project" :{
-            "gitroot" :      "~/dev",
-            "hostnames":     ["*"],
-            "copy_paths": [
-                        { "method":"copy", "path":"/devsync/test" },
-                        { "method":"copy", "path":"/devsync/test" }
-                    ]
+        "Test Project": {
+            "gitroot" :   "~/dev",                          // root of your git-project (copy files relative to here)
+            "hostnames":  ["*-work", "*-dev"],              // hostname matches
+            "copy_paths": ["/devsync/test", "/mnt/backup"]  // where to mirror saves to
         },
-        "WORK scripts" :{
-            "gitroot" :      "~/progs/maya/m2014",
-            "hostnames":     ["dev-vm-work-*"],
-            "copy_paths": [
-                        { "method":"copy", "path":"/devsync/work/scripts" }
-                    ]
+        "WORK scripts": {
+            "gitroot" :   "~/progs/maya2014",
+            "hostnames":  ["dev-vm-work-*"],
+            "copy_paths": ["/devsync/m2014"]
         }
     }
 
 
-
 Example Local Config: `/home/dev/work/gui/.projsync.json`
 
-.. code-block::
+
+.. code-block:: javascript
+
+    // local configs do not require ``gitroot` key. 
+    // (gitroot is determined by checking parent directories)
 
     {
-        "hostnames":  ["dev-vm-work-*"],
-        "copy_paths": [
-                        { "method":"copy", "path":"/devsync/work/scripts" }
-                    ]
+        "project C": {
+            "hostnames":  ["*-work", "*-dev"],              // hostname matches
+            "copy_paths": ["/devsync/test", "/mnt/backup"]  // where to mirror saves to
+        }
     }
 
-
-Config Keys
-...........
-
-* `gitroot`: The root directory of the git project you ar synchronizing.
-             (the directory containing your .git/ directory).
-              Paths will be recreated from here in your copy_path directories.
-
-              ex:
-
-              ::
-
-                  /home/dev/myproject/.git
-
-                  /home/dev/myproject/ gui/menus/mymenu.py 
-                  >> copied to >>
-                  /sync_location/ gui/menus/mymenu.py
-
-
-* `hostnames`:  A list of python fnmatch matches of hostnames.
-                The file is only copied if your host matches an entry here.
-                See the following link for syntax:
-                https://docs.python.org/2/library/fnmatch.html?highlight=fnmatch#module-fnmatch
-
-
-* `copy_paths`: A list of dictionaries that define how and where to copy the saved
-                file to. 2x keys are required:
-
-                    * `method`:  determines how the file is copied. currently only *copy*
-                                 is valid.
-
-                    * `path`:    determines where the file is copied to
 
 
 More Info

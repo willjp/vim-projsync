@@ -8,6 +8,9 @@ import shutil
 import vim
 
 
+__version__ == '2.0.0'
+
+
 class Config(object):
     """ Object representing a [.]projsync.json file (local or global).
 
