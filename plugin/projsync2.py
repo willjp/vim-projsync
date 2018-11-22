@@ -19,12 +19,12 @@ class Config(object):
                 "Work Stuff": {
                     "gitroot": "~/progs/work",
                     "hostnames": ["*-work-*"],
-                    "copy_paths": ["/devsync/work"],
+                    "copypaths": ["/devsync/work"],
                 },
                 "Windows Stuff": {
                     "gitroot": "~/progs/os/windows",
                     "hostnames": ["*-home-*"],
-                    "copy_paths": ["/devsync/windows"],
+                    "copypaths": ["/devsync/windows"],
                 }
                 ...
             }
@@ -36,6 +36,7 @@ class Config(object):
         if filepath is not None:
             filepath = os.path.abspath(os.path.expanduser(filepath))
         self.__filepath = filepath
+        self.__data = None
 
     @property
     def filepath(self):
@@ -62,6 +63,7 @@ class Config(object):
 
         self.validate(data, self.is_globalconfig)
         self.__data = data
+        return data
 
     def copypaths(self, gitroot):
         """ Returns copypaths defined in this configfile, filtered by
@@ -98,7 +100,8 @@ class Config(object):
             ]):
                 continue
 
-            copypaths.update(set(projdata['copy_paths']))
+            copypaths = set([os.path.expanduser(p) for p in projdata['copypaths']])
+            copypaths.update(copypaths)
 
         return list(copypaths)
 
@@ -115,7 +118,7 @@ class ProjectFile(object):
                 If none, defaults to the current vim buffer.
         """
         if filepath is None:
-            filepath = vim.current.buffer.name
+            filepath = os.path.abspath(vim.current.buffer.name)
 
         self.__filepath = filepath
         self.__config = None
@@ -169,8 +172,8 @@ class ProjectFile(object):
 
         # walk parents
         else:
-            parent_dirpath = None
-            dirpath = self.filepath
+            parent_dirpath = self.filepath
+            dirpath = None
 
             while parent_dirpath != dirpath:
                 dirpath = parent_dirpath
@@ -257,9 +260,15 @@ def sync_file(filepath=None, force=False):
 
     for copypath in projfile.copypaths():
         destpath = '{}/{}'.format(copypath, relpath)
+        destdir = os.path.dirname(destpath)
 
-        if all([
-            not force,
-            os.path.getmtime(projfile.filepath) > os.path.getmtime(destpath),
-        ]):
-            shutil.copyfile(projfile.filepath, destpath)
+        if not force and os.path.isfile(destpath):
+            srctime = os.path.getmtime(projfile.filepath)
+            dsttime = os.path.getmtime(destpath)
+            if srctime <= dsttime:
+                return
+
+        if not os.path.isdir(destdir):
+            os.makedirs(destdir)
+
+        shutil.copyfile(projfile.filepath, destpath)

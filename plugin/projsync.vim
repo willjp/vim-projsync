@@ -1,9 +1,3 @@
-"!TODO:  user-configure enable 'debug' mode
-"!TODO:  functions accept argument 'debug'
-"!TODO:  vim-fugitive integration
-"!TODO:  system git-checkout hook integration
-
-
 
 "" Plugin Init
 ""
