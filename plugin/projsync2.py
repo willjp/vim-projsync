@@ -134,8 +134,13 @@ class ProjectFile(object):
         if self.__gitroot:
             return self.__gitroot
 
+        # if filepath IS the gitroot, return
+        gitpath = '{}/.git'.format(self.filepath)
+        if os.path.exists(gitpath):
+            return self.filepath
+
+        # check parents
         for parentdir in self.walk_parentdirs():
-            # file if submodule, dir if gitroot
             gitpath = '{}/.git'.format(parentdir)
             if os.path.exists(gitpath):
                 self.__gitroot = parentdir
@@ -204,7 +209,7 @@ class ProjectFile(object):
         copypaths = set()
 
         # local .projsync.json files
-        for parentdir in self.walk_parentdirs():
+        for parentdir in [self.filepath] + list(self.walk_parentdirs()):
             configpath = '{}/.projsync.json'.format(parentdir)
             if os.path.isfile(configpath):
                 config = Config(configpath)
@@ -227,7 +232,7 @@ def sync_gitroot(filepath=None, force=False):
             the current vim buffer.
     """
     projfile = ProjectFile(filepath)
-    gitroot = ProjectFile(projfile.gitroot)
+    gitroot = ProjectFile(projfile.gitroot())
     copypaths = gitroot.copypaths()
 
     for (root, dirnames, filenames) in os.walk(gitroot.filepath, topdown=False):
@@ -239,9 +244,14 @@ def sync_gitroot(filepath=None, force=False):
             for copypath in copypaths:
                 srcpath = '{}/{}'.format(root, filename)
                 destpath = '{}/{}{}'.format(copypath, relpath, filename)
-                if not force and os.path.isfile(srcpath):
+                destdir = os.path.dirname(destpath)
+                if not force and os.path.isfile(destpath):
                     if os.path.getmtime(destpath) >= os.path.getmtime(srcpath):
                         continue
+
+                if not os.path.isdir(destdir):
+                    os.makedirs(destdir)
+
                 shutil.copyfile(srcpath, destpath)
 
 
