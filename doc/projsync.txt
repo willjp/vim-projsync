@@ -2,80 +2,28 @@
 
 Author:   Will Pittman
 License:  BSD
-Requires: git, vim compiled with python
+Requires: vim compiled with python
 
+================================================================================
+CONTENTS                           *projsync-contents*
 
+    1.Intro..............................|projsync|
+    2.Dependencies.......................|projsync-dependencies|
+    3.Options............................|projsync-options|
+    4.Configuration......................|projsync-config|
+
+================================================================================
 
 ================================================================================
 INTRODUCTION                       *projsync*
 ================================================================================
 
-What it Does:~
+Configures vim to mirror saves to other locations. I use this to allow me to
+work within a linux VM while writing code targeting windows. Duplicating files 
+immediately on save helps keep modify/execute cycles fast enough to be practical.
 
-Configure vim so that whenever you save a file, it copies that file
-preserving it's relative filepath to your project-root, to a variable
-number of configurable locations.
-
-Example:
-
-project/src/myfile.txt >> /mnt/myproject_copy/src/myfile.txt
-                       >> /var/tmp/myproject_other/src/myfile.txt
-
-
-
-
-The Problem:~
-
-Using git-projects in VirtualBox SharedFolders (or NetworkShares) is slow.  
-
-This is a simple script that allows you to work locally, 
-and push changes to a network-shared directory on file-save.
-
-
-Why I Wrote This:~
-
-Unfortunately, the majority of my work is for the Windows platform.
-The lack of effective shortcuts, window-management, and the awful
-non-resizable, non-multiplexed cmd.exe feels clumsy, and aggravating.
-
-After experimenting for a few years with various combinations of
-the following <amazing> projects, 
-* AutoHotkey
-* cygwin
-* msys
-* msys2
-* git-bash
-* ConEmu
-* clink
-* bugn
-* gVim
-* lsyncd
-
-
-I eventually settled on using a VirtualMachine for development.
-It was wonderful. No platform-specific issues or build constraints, 
-completely identical setups everywhere, and quickly reproducible 
-(see <vagrant> and <saltstack>).
-
-To pass information back and forth, I decided to share my 
-git source-dirs with the Windows Host using VirtualBox SharedFolders.
-That way everything can still be run/compiled etc on the windows host 
-itself, in the actual production environment.
-
-
-.. But then ..
-
-The performance of git when working within the shared folder was totally
-crippled. It was unusable. I was crushed.
-
-This plugin is my workaround. I now work locally, and keep various
-shared folders in `/mnt/`. If I am in a project that has configured
-projsync folder(s), every time that I save the file gets pushed to
-the shared folder right away.
-
-	ex:
-	`/home/dev/myproj/.git`              >>  `/mnt/devsync/my_proj/`
-	`/home/dev/myproj/ docs/README.rst`  >>  `/mnt/devsync/my_proj/ docs/README.rst`
+I highly recommend supplementing this with something like lsyncd to catch branch
+changes (https://github.com/axkibe/lsyncd).
 
 
 ================================================================================
@@ -85,189 +33,53 @@ DEPENDENCIES                       *projsync-dependencies*
 vim compiled with~
 	+python
 
-programs~
-	git
+
+================================================================================
+OPTIONS                            *projsync-options*
+================================================================================
+
+    :ProjSyncEnable    `" activates file-save hook`
+    :ProjSyncDisable   `" disables file-save hook`
+    :ProjSyncPushFile  `" copy current vim buffer to configured paths`
+    :ProjSyncSync      `" copy entire git-repo above vm buffer to configured paths`
 
 
 ================================================================================
 CONFIGURATION                      *projsync-config*
 ================================================================================
 
-Basics~
-
-The core idea is that you configure projsync to watch for specific
-git-projects. Every time that a file is saved, it's path is searched
-for it's git project's root. 
-
-If the file's git project matches one of your configured paths,
-after the file is saved, it the file will be copied to each of the configured
-locations.
-
-
-CONFIG LOCATIONS                  *projsync-config-locations*
-
-The config attempting to be a middleground between git, and vim.
-There are 2x places that the projsync config will be searched for:
-
-Global configuration: Your main config
-`~/.vim/projsync.json`
-
-Local configuration: If you're just testing things out, or need
-                     special behaviour under a subdirectory of a git
-							project.
-
-`/path/to/myfile/myfile.py        ## your file`
-`/path/to/projsync.json           ## local projsync config`
-`/path/to/.projsync.json          ## local projsync config (hidden)`
-
-
-CONFIG FORMAT                    *projsync-config-format*
-
-There are 2x types of configs, global and local.
-The main difference is:
-
-- global configs defines project-names/git-projects to match against.
-
-- local configs assume you are in the correct project, there are no
-  projectname or gitroot fields.
-
+Global configuration is read from `~/.vim/projsync.json` . You can also drop a
+`.projsync.json` file any where in your target-file's parent hierarchy. The configuration
+is cumulative.
 
 
 Example Global Config: `~/.vim/projsync.json`
---------------------------------------------
-{
-	"Test Project" :{
-		"gitroot" :      "~/dev",
-		"hostnames":     ["*"],
-		"copy_paths": [
-					{ "method":"copy", "path":"/devsync/test" },
-					{ "method":"copy", "path":"/devsync/test" }
-				]
-	},
-	"WORK scripts" :{
-		"gitroot" :      "~/progs/maya/m2014",
-		"hostnames":     ["dev-vm-work-*"],
-		"copy_paths": [
-					{ "method":"copy", "path":"/devsync/work/scripts" }
-				]
-	}
-}
+
+`    {`
+`        "Test Project": {`
+`            "gitroot" :   "~/dev",                          // root of your git-project (copy files relative to here)`
+`            "hostnames":  ["*-work", "*-dev"],              // hostname matches`
+`            "copy_paths": ["/devsync/test", "/mnt/backup"]  // where to mirror saves to`
+`        },`
+`        "WORK scripts": {`
+`            "gitroot" :   "~/progs/maya2014",`
+`            "hostnames":  ["dev-vm-work-*"],`
+`            "copy_paths": ["/devsync/m2014"]`
+`        }`
+`    }`
 
 
 Example Local Config: `/home/dev/work/gui/.projsync.json`
---------------------------------------------------------
 
-{
-	"hostnames":  ["dev-vm-work-*"],
-	"copy_paths": [
-					{ "method":"copy", "path":"/devsync/work/scripts" }
-				]
-}
+`    // local configs do not require 'gitroot' key. ``
+`    // (gitroot is determined by checking parent directories)`
 
+`    {`
+`        "project C": {`
+`            "hostnames":  ["*-work", "*-dev"],              // hostname matches`
+`            "copy_paths": ["/devsync/test", "/mnt/backup"]  // where to mirror saves to`
+`        }`
+`    }`
 
-CONFIG KEYS                      *projsync-config-keys*
-
-gitroot:   The root directory of the git project you ar synchronizing.
-           (the directory containing your .git/ directory).
-			  Paths will be recreated from here in your copy_path directories.
-
-			  ex:
-			  	/home/dev/myproject/.git
-
-			  	/home/dev/myproject/ gui/menus/mymenu.py 
-			  	>> copied to >>
-			  	/sync_location/ gui/menus/mymenu.py
-
-
-hostnames:  A list of python fnmatch matches of hostnames.
-            The file is only copied if your host matches an entry here.
-			   See the following link for syntax:
-			   https://docs.python.org/2/library/fnmatch.html?highlight=fnmatch#module-fnmatch
-
-
-copy_paths: A list of dictionaries that define how and where to copy the saved
-            file to.
-
-
-================================================================================
-SPECIAL MENTIONS                 *projsync-special-mentions*
-================================================================================
-
-
-Other Solutions:~
-
-lsyncd
-------
-lsyncd allows you to choose a source and destination directory. It then
-leverages inotify to detect when a file on the source side has been changed,
-then runs a preconfigured rsync command to push the changes to the other dir.
-
-This is a great tool for the kit, but it wasn't catching differences fast
-enough for me to make a change to the source, jump into cmd.exe, and re-run
-the script. 
-
-
-Non-VM Windows Dev Solutions:~
-
-cygwin:
--------
-cygwin is program that allows you to run native unix programs on windows
-using cygwin.dll to translate between Unix and Windows system calls.
-It is super powerful, and even accepts windows filepaths.
-
-This means you can:
-* run any shell you'd like (zsh, ksh, etc)
-* run tmux
-* run an Xorg server (slow)
-* etc
-
-
-msys/msys2:
------------
-msys takes a different approach than cygwin. Rather than translating system
-calls while the program is running, msys does this earlier at compile-time. 
-This means generally better performance, and rather than running unix software
-in a cygwin environment (or within an Xorg server), you're running it directly 
-on windows. 
-
-Another giant pro is that it uses a CLI package-manager (pacman!) to grab software,
-which makes it very easy to script-install your dev environment.
-
-The downside is that not all software can be compiled using msys/msys2,
-which means for some things you'll special instructions. or it may just
-be unavailable.
-
-
-git-bash:
----------
-This is technically built on msys, but without special hackery, you are
-restricted to the software that is preinstalled with git. That said, it is
-probably the quickest way to get a unix-like environment running, and I use
-this as a window to start vagrant (with my linux/bsd VMs). 
-
-The low barrier for entry makes this more accessible to windows-only
-coworkers.
-
-
-Ipython
--------
-IPython is an alternative interactive python shell with all kinds of
-fancy tricks like autoreloading modules, debugger tab-completion, and a 
-simulated readline (with vi-mode) even on windows. 
-
-If you're working in python, regardless of the platform it's a must-have.
-Personally, I find that it alleviates many of the symptoms of the cmd.exe
-blues.
-
-Interestingly, if you are working in a *nix VM on windows, you can also
-remotely connect to a IPython kernel - and interact with the windows machine
-through it from your terminal.
-
-
-
-
-
-( If unfamiliar, see <i3>, <dwm>, <openbox>, <tmux>, <zsh> )
-( each may change your life, scout's honour      )
 
 vim:tw=78:et:ft=help:norl:

@@ -36,11 +36,16 @@ Commands:
 
 .. code-block:: vim
 
-    :ProjSyncEnable    " activates projsync, hook on file-save will be activated
-    :ProjSyncDisable   " disabled projsync, hook on file-save will be disactivated
-    :ProjSyncPushFile  " copy the current file to all configured locations
-    :ProjSyncSync      " copy the entire contents of git repo to configured locations
+    :ProjSyncEnable    " activates file-save hook
+    :ProjSyncDisable   " disables file-save hook
+    :ProjSyncPushFile  " copy current vim buffer to configured paths
+    :ProjSyncSync      " copy entire git-repo above vm buffer to configured paths
 
+
+Requires:
+---------
+
+Your vim must be compiled with python. Check for ``+python`` in the output of command ``vim --version`` .
 
 
 Configuration
